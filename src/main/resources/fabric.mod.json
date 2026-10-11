@@ -1,0 +1,20 @@
+{
+	"schemaVersion": 1,
+	"id": "counterstrike",
+	"version": "${version}",
+	"name": "Counter-Strike",
+	"description": "Team Deathmatch im Counter-Strike-Stil mit Klassen und Bots.",
+	"authors": ["jan1a234"],
+	"license": "MIT",
+	"environment": "*",
+	"entrypoints": {
+		"main": ["com.jan1a234.counterstrike.CounterStrikeMod"],
+		"client": ["com.jan1a234.counterstrike.client.CounterStrikeClient"]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
