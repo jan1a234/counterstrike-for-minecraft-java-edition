@@ -2,7 +2,6 @@ package com.jan1a234.counterstrike.bot;
 
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.monster.zombie.Zombie;
 
@@ -14,7 +13,7 @@ public class CsBot extends Zombie {
 	private BotSlot slot;
 
 	public CsBot(ServerLevel level, BotSlot slot) {
-		super(EntityType.ZOMBIE, level);
+		super(level);
 		this.slot = slot;
 		setPersistenceRequired();
 		setCanPickUpLoot(false);
