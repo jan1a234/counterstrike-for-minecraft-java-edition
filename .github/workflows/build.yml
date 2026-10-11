@@ -14,10 +14,11 @@ jobs:
       - run: ./gradlew compileJava -q || true
       - name: inspect
         run: |
+          set +e
           C=~/.gradle/caches/fabric-loom/26.2/minecraft-common.jar
           K=~/.gradle/caches/fabric-loom/26.2/minecraft-client-only.jar
           jp() { javap -cp "$C:$K" "$@" 2>&1; }
-          echo "=== EntityType zombie"; jp net.minecraft.world.entity.EntityType | grep -i zombie
+          echo "=== EntityType zombie"; jp net.minecraft.world.entity.EntityType | grep -iE 'zombie|husk' ; unzip -l $C | grep -iE 'EntityTypes?\.class' | awk '{print $4}'
           echo "=== zombie classes"; unzip -l $C | grep -iE "zombie/Zombie\.class|EntityTypes" 
           echo "=== Zombie"; jp -p net.minecraft.world.entity.monster.zombie.Zombie | grep -iE "Zombie\(|sun|water|ambient|registerGoals|baby"
           echo "=== scores"; unzip -l $C | grep -E "scores/[A-Za-z]+\.class" | awk '{print $4}' | tr '\n' ' '
