@@ -1,5 +1,6 @@
 package com.jan1a234.counterstrike.command;
 
+import com.jan1a234.counterstrike.bot.BotDifficulty;
 import com.jan1a234.counterstrike.game.ArenaConfig;
 import com.jan1a234.counterstrike.game.CsClass;
 import com.jan1a234.counterstrike.game.CsTeam;
@@ -37,6 +38,10 @@ public final class CsCommands {
 			(ctx, builder) -> SharedSuggestionProvider.suggest(
 					Arrays.stream(CsClass.values()).map(c -> c.id), builder);
 
+	private static final SuggestionProvider<CommandSourceStack> BOT_LEVELS =
+			(ctx, builder) -> SharedSuggestionProvider.suggest(
+					Arrays.stream(BotDifficulty.values()).map(d -> d.id), builder);
+
 	private CsCommands() {
 	}
 
@@ -68,6 +73,9 @@ public final class CsCommands {
 						.then(Commands.argument("team", StringArgumentType.word()).suggests(TEAMS)
 								.then(Commands.argument("count", IntegerArgumentType.integer(0, 16))
 										.executes(CsCommands::bots))))
+				.then(Commands.literal("botlevel").requires(CsCommands::isAdmin)
+						.then(Commands.argument("level", StringArgumentType.word()).suggests(BOT_LEVELS)
+								.executes(CsCommands::botLevel)))
 				.then(Commands.literal("start").requires(CsCommands::isAdmin).executes(CsCommands::start))
 				.then(Commands.literal("stop").requires(CsCommands::isAdmin).executes(CsCommands::stop));
 		dispatcher.register(root);
@@ -87,6 +95,7 @@ public final class CsCommands {
 				"/cs spawn list | clear <ct|t>",
 				"/cs time <15|30|120>  Laufzeit in Minuten",
 				"/cs bots <ct|t> <anzahl>  Bots pro Team",
+				"/cs botlevel <leicht|normal|schwer>  Bot-Staerke",
 				"/cs start | stop",
 		};
 		ctx.getSource().sendSuccess(() -> Component.literal("Counter-Strike Befehle").withStyle(ChatFormatting.GOLD), false);
@@ -105,7 +114,8 @@ public final class CsCommands {
 			source.sendSuccess(() -> Component.empty().append(match.scoreLine())
 					.append(Component.literal("  Restzeit " + match.timeLeftText()).withStyle(ChatFormatting.WHITE)), false);
 		}
-		source.sendSuccess(() -> Component.literal("Laufzeit: " + config.durationMinutes + " Minuten"), false);
+		source.sendSuccess(() -> Component.literal("Laufzeit: " + config.durationMinutes + " Minuten  | Bot-Staerke: "
+				+ config.botDifficulty().id), false);
 		for (CsTeam team : CsTeam.values()) {
 			List<String> names = match.memberNames(team);
 			source.sendSuccess(() -> Match.teamName(team)
@@ -233,7 +243,20 @@ public final class CsCommands {
 		config.save();
 		ctx.getSource().sendSuccess(() -> Component.literal(count + " Bots fuer die ")
 				.append(Match.teamName(team))
-				.append(Component.literal(" (Bots kommen in Schritt 3)").withStyle(ChatFormatting.GRAY)), true);
+				.append(Component.literal(" (gilt ab dem naechsten Start)").withStyle(ChatFormatting.GRAY)), true);
+		return 1;
+	}
+
+	private static int botLevel(CommandContext<CommandSourceStack> ctx) {
+		BotDifficulty difficulty = BotDifficulty.byId(StringArgumentType.getString(ctx, "level"));
+		if (difficulty == null) {
+			ctx.getSource().sendFailure(Component.literal("Nutze leicht, normal oder schwer."));
+			return 0;
+		}
+		ArenaConfig config = Match.get().config();
+		config.botDifficulty = difficulty.id;
+		config.save();
+		ctx.getSource().sendSuccess(() -> Component.literal("Bot-Staerke: " + difficulty.id), true);
 		return 1;
 	}
 

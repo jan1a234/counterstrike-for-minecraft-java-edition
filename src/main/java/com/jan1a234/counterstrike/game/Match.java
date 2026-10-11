@@ -1,7 +1,12 @@
 package com.jan1a234.counterstrike.game;
 
 import net.minecraft.ChatFormatting;
+import com.jan1a234.counterstrike.bot.BotSlot;
+import com.jan1a234.counterstrike.bot.CsBot;
 import com.jan1a234.counterstrike.weapon.WeaponHandler;
+import com.jan1a234.counterstrike.weapon.Weapons;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
@@ -57,6 +62,13 @@ public class Match {
 	private final Map<UUID, Integer> deaths = new HashMap<>();
 	private final Map<UUID, GameType> previousGameModes = new HashMap<>();
 	private final Map<UUID, CsClass> classes = new HashMap<>();
+	private final List<BotSlot> bots = new ArrayList<>();
+
+	private static final String[] BOT_NAMES = {
+			"Alex", "Bruno", "Chris", "Dario", "Emil", "Finn", "Gustav", "Hugo", "Ivan", "Jonas",
+			"Kai", "Lars", "Milo", "Nico", "Oskar", "Paul", "Quentin", "Rico", "Sven", "Tim",
+			"Udo", "Viktor", "Willi", "Xaver", "Yannik", "Zeno", "Arne", "Ben", "Carl", "Dennis",
+			"Erik", "Felix"};
 	private final EnumMap<CsTeam, Integer> teamKills = new EnumMap<>(CsTeam.class);
 
 	private final ServerBossEvent bar = new ServerBossEvent(
@@ -125,8 +137,8 @@ public class Match {
 
 	public int teamSize(CsTeam team) {
 		int count = 0;
-		for (CsTeam t : members.values()) {
-			if (t == team) {
+		for (Map.Entry<UUID, CsTeam> entry : members.entrySet()) {
+			if (entry.getValue() == team && bots.stream().noneMatch(b -> b.id.equals(entry.getKey()))) {
 				count++;
 			}
 		}
@@ -189,8 +201,8 @@ public class Match {
 				return "Fuer die " + team.displayName + " fehlt ein Spawnpunkt (/cs spawn add " + team.id + ").";
 			}
 		}
-		if (onlineMembers().isEmpty()) {
-			return "Niemand ist in einem Team (/cs join ct|t|auto).";
+		if (onlineMembers().isEmpty() && config.ctBots + config.tBots == 0) {
+			return "Niemand ist in einem Team (/cs join ct|t|auto) und es sind keine Bots eingestellt.";
 		}
 
 		resetScores();
@@ -202,6 +214,7 @@ public class Match {
 		for (ServerPlayer player : onlineMembers()) {
 			enterMatch(player);
 		}
+		createBots();
 		broadcast(Component.literal("Team Deathmatch startet! Laufzeit: " + config.durationMinutes + " Minuten")
 				.withStyle(ChatFormatting.GREEN));
 		return null;
@@ -251,6 +264,13 @@ public class Match {
 
 	private void tickRunning() {
 		ticksLeft--;
+		long now = server.getTickCount();
+		for (BotSlot slot : bots) {
+			if (slot.respawnTick >= 0 && now >= slot.respawnTick) {
+				slot.respawnTick = -1;
+				spawnBot(slot);
+			}
+		}
 		if (ticksLeft % 20 == 0) {
 			updateBar();
 		}
@@ -299,6 +319,7 @@ public class Match {
 
 	private void finish() {
 		bar.removeAllPlayers();
+		removeBots();
 		for (ServerPlayer player : onlineMembers()) {
 			clearEquipment(player);
 			restoreGameMode(player);
@@ -308,6 +329,10 @@ public class Match {
 	// ---------------------------------------------------------------- Kampf
 
 	public void onDeath(LivingEntity victim, DamageSource source) {
+		if (victim instanceof CsBot bot && bot.slot() != null && bots.contains(bot.slot())) {
+			bot.slot().entity = null;
+			bot.slot().respawnTick = server.getTickCount() + 60;
+		}
 		if (state != State.RUNNING) {
 			return;
 		}
@@ -335,6 +360,11 @@ public class Match {
 	public boolean allowDeath(LivingEntity entity) {
 		if (isActive() && entity instanceof ServerPlayer player && teamOf(player) != null) {
 			player.getInventory().clearContent();
+		}
+		if (entity instanceof CsBot bot) {
+			for (EquipmentSlot slot : EquipmentSlot.values()) {
+				bot.setItemSlot(slot, net.minecraft.world.item.ItemStack.EMPTY);
+			}
 		}
 		return true;
 	}
@@ -413,6 +443,103 @@ public class Match {
 		if (previous != null) {
 			player.setGameMode(previous);
 		}
+	}
+
+	// ---------------------------------------------------------------- Bots
+
+	private void createBots() {
+		removeBots();
+		int nameIndex = random.nextInt(BOT_NAMES.length);
+		for (CsTeam team : CsTeam.values()) {
+			int classIndex = random.nextInt(CsClass.values().length);
+			for (int i = 0; i < config.bots(team); i++) {
+				String name = "[Bot] " + BOT_NAMES[nameIndex++ % BOT_NAMES.length];
+				CsClass csClass = CsClass.values()[classIndex++ % CsClass.values().length];
+				BotSlot slot = new BotSlot(UUID.randomUUID(), name, team, csClass);
+				bots.add(slot);
+				members.put(slot.id, team);
+				names.put(slot.id, name);
+				spawnBot(slot);
+			}
+		}
+	}
+
+	private void spawnBot(BotSlot slot) {
+		List<SpawnPoint> spawns = config.spawns(slot.team);
+		if (spawns.isEmpty()) {
+			return;
+		}
+		SpawnPoint spawn = spawns.get(random.nextInt(spawns.size()));
+		ServerLevel level = levelFor(spawn.dimension);
+		if (level == null) {
+			return;
+		}
+		CsBot bot = new CsBot(level, slot);
+		bot.setUUID(slot.id);
+		bot.snapTo(spawn.x, spawn.y, spawn.z, spawn.yaw, spawn.pitch);
+		bot.setCustomName(Component.literal(slot.name).withStyle(slot.team.color));
+		bot.setCustomNameVisible(true);
+		bot.setItemSlot(EquipmentSlot.MAINHAND, Weapons.create(slot.csClass.primary));
+		Loadout.equipCommon(bot, slot.csClass, slot.team);
+		level.addFreshEntity(bot);
+		PlayerTeam scoreboardTeam = scoreboard().getPlayerTeam(slot.team.scoreboardName());
+		if (scoreboardTeam != null) {
+			scoreboard().addPlayerToTeam(bot.getScoreboardName(), scoreboardTeam);
+		}
+		slot.entity = bot;
+	}
+
+	private void removeBots() {
+		for (BotSlot slot : bots) {
+			if (slot.entity != null) {
+				scoreboard().removePlayerFromTeam(slot.entity.getScoreboardName());
+				WeaponHandler.forget(slot.entity);
+				slot.entity.discard();
+			}
+			members.remove(slot.id);
+		}
+		bots.clear();
+	}
+
+	/** Naechster lebender Gegner, optional nur mit Sichtkontakt. */
+	public LivingEntity nearestEnemy(LivingEntity from, CsTeam team, double range, boolean needSight) {
+		LivingEntity best = null;
+		double bestDistance = range * range;
+		for (LivingEntity candidate : livingMembers(team.opponent())) {
+			if (candidate.level() != from.level()) {
+				continue;
+			}
+			double distance = candidate.distanceToSqr(from);
+			if (distance < bestDistance && (!needSight || from.hasLineOfSight(candidate))) {
+				best = candidate;
+				bestDistance = distance;
+			}
+		}
+		return best;
+	}
+
+	private List<LivingEntity> livingMembers(CsTeam team) {
+		List<LivingEntity> result = new ArrayList<>();
+		for (ServerPlayer player : onlineMembers()) {
+			if (teamOf(player) == team && player.isAlive() && !player.isSpectator()) {
+				result.add(player);
+			}
+		}
+		for (BotSlot slot : bots) {
+			if (slot.team == team && slot.entity != null && slot.entity.isAlive()) {
+				result.add(slot.entity);
+			}
+		}
+		return result;
+	}
+
+	public Vec3 randomSpawn(CsTeam team) {
+		List<SpawnPoint> spawns = config.spawns(team);
+		if (spawns.isEmpty()) {
+			return null;
+		}
+		SpawnPoint spawn = spawns.get(random.nextInt(spawns.size()));
+		return new Vec3(spawn.x, spawn.y, spawn.z);
 	}
 
 	private void teleportToSpawn(ServerPlayer player) {
