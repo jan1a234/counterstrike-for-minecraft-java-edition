@@ -1,7 +1,10 @@
 package com.jan1a234.counterstrike.game;
 
 import net.minecraft.ChatFormatting;
+import com.jan1a234.counterstrike.weapon.WeaponHandler;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
@@ -53,6 +56,7 @@ public class Match {
 	private final Map<UUID, Integer> kills = new HashMap<>();
 	private final Map<UUID, Integer> deaths = new HashMap<>();
 	private final Map<UUID, GameType> previousGameModes = new HashMap<>();
+	private final Map<UUID, CsClass> classes = new HashMap<>();
 	private final EnumMap<CsTeam, Integer> teamKills = new EnumMap<>(CsTeam.class);
 
 	private final ServerBossEvent bar = new ServerBossEvent(
@@ -93,6 +97,10 @@ public class Match {
 
 	public State state() {
 		return state;
+	}
+
+	public boolean isRunning() {
+		return state == State.RUNNING;
 	}
 
 	public boolean isActive() {
@@ -139,6 +147,7 @@ public class Match {
 		}
 		broadcast(Component.literal(player.getName().getString() + " spielt jetzt bei den ")
 				.append(teamName(team)).withStyle(ChatFormatting.GRAY));
+		showClassMenu(player);
 		if (isActive()) {
 			enterMatch(player);
 		}
@@ -151,6 +160,9 @@ public class Match {
 		}
 		scoreboard().removePlayerFromTeam(player.getScoreboardName());
 		bar.removePlayer(player);
+		if (isActive()) {
+			clearEquipment(player);
+		}
 		restoreGameMode(player);
 		broadcast(Component.literal(player.getName().getString() + " hat das Team verlassen").withStyle(ChatFormatting.GRAY));
 	}
@@ -288,6 +300,7 @@ public class Match {
 	private void finish() {
 		bar.removeAllPlayers();
 		for (ServerPlayer player : onlineMembers()) {
+			clearEquipment(player);
 			restoreGameMode(player);
 		}
 	}
@@ -303,6 +316,8 @@ public class Match {
 			return;
 		}
 		deaths.merge(victim.getUUID(), 1, Integer::sum);
+		String weapon = WeaponHandler.lastWeapon(victim);
+		WeaponHandler.forget(victim);
 
 		Entity killer = source.getEntity();
 		CsTeam killerTeam = killer == null ? null : teamOf(killer);
@@ -310,16 +325,31 @@ public class Match {
 			kills.merge(killer.getUUID(), 1, Integer::sum);
 			teamKills.merge(killerTeam, 1, Integer::sum);
 			broadcast(Component.literal(killer.getName().getString()).withStyle(killerTeam.color)
-					.append(Component.literal(" ✦ ").withStyle(ChatFormatting.GRAY))
+					.append(Component.literal(" [" + (weapon != null ? weapon : meleeName(killer)) + "] ").withStyle(ChatFormatting.GRAY))
 					.append(Component.literal(victim.getName().getString()).withStyle(victimTeam.color)));
 			updateBar();
 		}
+	}
+
+	/** Vor dem Tod: Inventar leeren, damit keine Waffen auf den Boden fallen. */
+	public boolean allowDeath(LivingEntity entity) {
+		if (isActive() && entity instanceof ServerPlayer player && teamOf(player) != null) {
+			player.getInventory().clearContent();
+		}
+		return true;
+	}
+
+	private static String meleeName(Entity killer) {
+		return killer instanceof LivingEntity living && !living.getMainHandItem().isEmpty()
+				? living.getMainHandItem().getHoverName().getString()
+				: "Faust";
 	}
 
 	public void onRespawn(ServerPlayer player) {
 		if (isActive() && teamOf(player) != null) {
 			preparePlayer(player);
 			teleportToSpawn(player);
+			showClassMenu(player);
 		}
 	}
 
@@ -334,10 +364,48 @@ public class Match {
 
 	private void preparePlayer(ServerPlayer player) {
 		player.setGameMode(GameType.ADVENTURE);
-		player.setHealth(player.getMaxHealth());
-		player.getFoodData().setFoodLevel(20);
+		Loadout.equipPlayer(player, classOf(player), teamOf(player));
+	}
+
+	private void clearEquipment(ServerPlayer player) {
 		player.getInventory().clearContent();
-		// Die Ausruestung der Klassen kommt in Schritt 2.
+		Loadout.reset(player);
+		WeaponHandler.forget(player);
+	}
+
+	// ---------------------------------------------------------------- Klassen
+
+	public CsClass classOf(Entity entity) {
+		return classes.getOrDefault(entity.getUUID(), CsClass.ASSAULT);
+	}
+
+	public void chooseClass(ServerPlayer player, CsClass csClass) {
+		classes.put(player.getUUID(), csClass);
+		if (state == State.COUNTDOWN && teamOf(player) != null) {
+			preparePlayer(player);
+			player.sendSystemMessage(Component.literal("Klasse: ").append(className(csClass)));
+		} else if (state == State.RUNNING && teamOf(player) != null) {
+			player.sendSystemMessage(Component.literal("Klasse ab dem naechsten Respawn: ").append(className(csClass)));
+		} else {
+			player.sendSystemMessage(Component.literal("Klasse: ").append(className(csClass)));
+		}
+	}
+
+	public static MutableComponent className(CsClass csClass) {
+		return Component.literal(csClass.displayName).withStyle(csClass.color);
+	}
+
+	/** Klickbares Klassenmenue im Chat. */
+	public void showClassMenu(ServerPlayer player) {
+		MutableComponent line = Component.literal("Klasse waehlen: ").withStyle(ChatFormatting.GOLD);
+		for (CsClass csClass : CsClass.values()) {
+			line.append(Component.literal("[" + csClass.displayName + "]").withStyle(style -> style
+					.withColor(csClass.color)
+					.withClickEvent(new ClickEvent.RunCommand("/cs class " + csClass.id))
+					.withHoverEvent(new HoverEvent.ShowText(Component.literal(csClass.description)))));
+			line.append(Component.literal(" "));
+		}
+		player.sendSystemMessage(line);
 	}
 
 	private void restoreGameMode(ServerPlayer player) {

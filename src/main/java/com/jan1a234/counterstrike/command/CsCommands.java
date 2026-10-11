@@ -1,6 +1,7 @@
 package com.jan1a234.counterstrike.command;
 
 import com.jan1a234.counterstrike.game.ArenaConfig;
+import com.jan1a234.counterstrike.game.CsClass;
 import com.jan1a234.counterstrike.game.CsTeam;
 import com.jan1a234.counterstrike.game.Match;
 import com.jan1a234.counterstrike.game.SpawnPoint;
@@ -32,6 +33,10 @@ public final class CsCommands {
 			(ctx, builder) -> SharedSuggestionProvider.suggest(
 					Arrays.stream(ArenaConfig.ALLOWED_DURATIONS).mapToObj(String::valueOf), builder);
 
+	private static final SuggestionProvider<CommandSourceStack> CLASSES =
+			(ctx, builder) -> SharedSuggestionProvider.suggest(
+					Arrays.stream(CsClass.values()).map(c -> c.id), builder);
+
 	private CsCommands() {
 	}
 
@@ -44,6 +49,10 @@ public final class CsCommands {
 						.then(Commands.argument("team", StringArgumentType.word()).suggests(TEAMS_AUTO)
 								.executes(CsCommands::join)))
 				.then(Commands.literal("leave").executes(CsCommands::leave))
+				.then(Commands.literal("class")
+						.executes(CsCommands::classMenu)
+						.then(Commands.argument("class", StringArgumentType.word()).suggests(CLASSES)
+								.executes(CsCommands::chooseClass)))
 				.then(Commands.literal("spawn").requires(CsCommands::isAdmin)
 						.then(Commands.literal("add")
 								.then(Commands.argument("team", StringArgumentType.word()).suggests(TEAMS)
@@ -72,6 +81,7 @@ public final class CsCommands {
 		String[] lines = {
 				"/cs join <ct|t|auto>  Team waehlen",
 				"/cs leave  Team verlassen",
+				"/cs class <sturm|mg|sniper|pionier>  Klasse waehlen",
 				"/cs status  Spielstand und Einstellungen",
 				"/cs spawn add <ct|t>  Spawnpunkt an deiner Position setzen",
 				"/cs spawn list | clear <ct|t>",
@@ -133,6 +143,22 @@ public final class CsCommands {
 			return 0;
 		}
 		Match.get().leave(player);
+		return 1;
+	}
+
+	private static int classMenu(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		Match.get().showClassMenu(ctx.getSource().getPlayerOrException());
+		return 1;
+	}
+
+	private static int chooseClass(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		CsClass csClass = CsClass.byId(StringArgumentType.getString(ctx, "class"));
+		if (csClass == null) {
+			ctx.getSource().sendFailure(Component.literal("Unbekannte Klasse. Nutze sturm, mg, sniper oder pionier."));
+			return 0;
+		}
+		Match.get().chooseClass(player, csClass);
 		return 1;
 	}
 
