@@ -168,8 +168,8 @@ public final class WeaponHandler {
 				end = blockHit.getLocation();
 			}
 			AABB searchBox = shooter.getBoundingBox().expandTowards(end.subtract(eye)).inflate(1.0);
-			EntityHitResult entityHit = ProjectileUtil.getEntityHitResult(level, shooter, eye, end, searchBox,
-					target -> canHit(shooter, target));
+			EntityHitResult entityHit = ProjectileUtil.getEntityHitResult(shooter, eye, end, searchBox,
+					target -> canHit(shooter, target), eye.distanceToSqr(end));
 			if (entityHit != null && entityHit.getEntity() instanceof LivingEntity target) {
 				Vec3 hitPos = entityHit.getLocation();
 				end = hitPos;
