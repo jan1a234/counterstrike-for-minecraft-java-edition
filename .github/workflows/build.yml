@@ -12,7 +12,7 @@ jobs:
           java-version: '25'
           distribution: 'microsoft'
       - run: chmod +x ./gradlew
-      - run: ./gradlew build --stacktrace
+      - run: ./gradlew build 
       - uses: actions/upload-artifact@v4
         with:
           name: counterstrike-mod

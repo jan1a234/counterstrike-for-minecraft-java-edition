@@ -56,7 +56,7 @@ public class Match {
 	private final EnumMap<CsTeam, Integer> teamKills = new EnumMap<>(CsTeam.class);
 
 	private final ServerBossEvent bar = new ServerBossEvent(
-			Component.literal("Counter-Strike"), BossEvent.BossBarColor.WHITE, BossEvent.BossBarOverlay.PROGRESS);
+			UUID.randomUUID(), Component.literal("Counter-Strike"), BossEvent.BossBarColor.WHITE, BossEvent.BossBarOverlay.PROGRESS);
 
 	private State state = State.LOBBY;
 	private int ticksLeft;
@@ -449,7 +449,6 @@ public class Match {
 				scoreboardTeam = scoreboard().addPlayerTeam(team.scoreboardName());
 			}
 			scoreboardTeam.setDisplayName(Component.literal(team.displayName));
-			scoreboardTeam.setColor(team.color);
 			scoreboardTeam.setPlayerPrefix(Component.literal("[" + team.id.toUpperCase() + "] ").withStyle(team.color));
 			scoreboardTeam.setAllowFriendlyFire(false);
 			scoreboardTeam.setNameTagVisibility(Team.Visibility.HIDE_FOR_OTHER_TEAMS);
