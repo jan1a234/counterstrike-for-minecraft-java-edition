@@ -14,12 +14,21 @@ jobs:
       - run: ./gradlew compileJava -q || true
       - name: inspect
         run: |
-          find ~/.gradle .gradle -name "*.jar" 2>/dev/null | grep -i minecraft | head -30
-          JAR=$(find ~/.gradle .gradle -name "*.jar" 2>/dev/null | grep -i "minecraft" | grep -iE "client|merged" | grep -v sources | head -1)
-          echo "JAR=$JAR"
-          for c in net.minecraft.client.renderer.GameRenderer net.minecraft.world.scores.Scoreboard net.minecraft.server.ServerScoreboard net.minecraft.world.scores.ScoreHolder net.minecraft.world.scores.ScoreAccess net.minecraft.world.scores.PlayerTeam net.minecraft.world.scores.TeamColor; do
-            echo "=== $c"; javap -cp "$JAR" $c 2>&1 | grep -iE "fov|Objective|addObjective|setDisplay|getOrCreate|forNameOnly|set\(|setColor|class|enum| [A-Z_]+;" | head -40
-          done
-          echo "=== zombie"; unzip -l "$JAR" | grep -E "Zombie.class|/Husk.class" | head
-          echo "=== gamerules"; unzip -l "$JAR" | grep -iE "GameRules.class|gamerules/" | head -20
-          echo "=== hud"; find ~/.gradle -name "*.jar" | grep -i "fabric-rendering-v1" | head -3
+          C=~/.gradle/caches/fabric-loom/26.2/minecraft-common.jar
+          K=~/.gradle/caches/fabric-loom/26.2/minecraft-client-only.jar
+          jp() { javap -cp "$C:$K" "$@" 2>&1; }
+          echo "=== EntityType zombie"; jp net.minecraft.world.entity.EntityType | grep -i zombie
+          echo "=== zombie classes"; unzip -l $C | grep -iE "zombie/Zombie\.class|EntityTypes" 
+          echo "=== Zombie"; jp -p net.minecraft.world.entity.monster.zombie.Zombie | grep -iE "Zombie\(|sun|water|ambient|registerGoals|baby"
+          echo "=== scores"; unzip -l $C | grep -E "scores/[A-Za-z]+\.class" | awk '{print $4}' | tr '\n' ' '
+          echo; echo "=== Scoreboard"; jp net.minecraft.world.scores.Scoreboard | grep -iE "objective|display|score|team" | head -40
+          echo "=== ServerScoreboard"; unzip -l $C | grep -i "ServerScoreboard"
+          echo "=== PlayerTeam"; jp net.minecraft.world.scores.PlayerTeam | grep -iE "color|prefix"
+          echo "=== TeamColor"; unzip -l $C | grep -i "TeamColor"
+          echo "=== fov classes"; unzip -l $K | grep -iE "fov|zoom" | awk '{print $4}' | head -20
+          echo "=== GameRenderer methods"; jp -p net.minecraft.client.renderer.GameRenderer | grep -iE "float|double" | head -40
+          echo "=== Camera"; jp -p net.minecraft.client.Camera | grep -iE "fov|float get|double get" | head -30
+          echo "=== Player FOV"; jp -p net.minecraft.client.player.AbstractClientPlayer | grep -iE "fov|scop"
+          echo "=== fabric hud"; for j in $(find ~/.gradle -name "fabric-rendering-v1*.jar" -o -name "fabric-*hud*.jar" | grep -v sources); do echo $j; unzip -l $j | grep -iE "hud|fov" | awk '{print $4}'; done
+          echo "=== fabric events with fov"; for j in $(find ~/.gradle -name "fabric-*.jar" | grep -v sources); do unzip -l $j | grep -iE "fov" | awk '{print $4}'; done
+          echo "=== GameRules"; unzip -l $C | grep -iE "/GameRules\.class|gamerules/GameRule" | awk '{print $4}'
