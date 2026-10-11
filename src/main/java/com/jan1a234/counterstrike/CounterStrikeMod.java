@@ -38,7 +38,7 @@ public class CounterStrikeMod implements ModInitializer {
 
 		UseItemCallback.EVENT.register(WeaponHandler::onUse);
 		UseBlockCallback.EVENT.register((player, level, hand, hitResult) -> WeaponHandler.onUse(player, level, hand));
-		ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) -> Match.get().allowDeath(entity));
+		ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) -> Match.get().allowDeath(entity, source));
 
 		ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> Match.get().onDeath(entity, source));
 		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> Match.get().onRespawn(newPlayer));
