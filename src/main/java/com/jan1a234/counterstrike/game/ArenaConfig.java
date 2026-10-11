@@ -3,6 +3,7 @@ package com.jan1a234.counterstrike.game;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.jan1a234.counterstrike.CounterStrikeMod;
+import com.jan1a234.counterstrike.bot.BotDifficulty;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -27,6 +28,12 @@ public class ArenaConfig {
 	public int durationMinutes = 15;
 	public int ctBots = 0;
 	public int tBots = 0;
+	public String botDifficulty = "normal";
+
+	public BotDifficulty botDifficulty() {
+		BotDifficulty difficulty = BotDifficulty.byId(botDifficulty == null ? "" : botDifficulty);
+		return difficulty == null ? BotDifficulty.NORMAL : difficulty;
+	}
 
 	private transient Path file;
 
