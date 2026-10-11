@@ -26,7 +26,11 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Relative;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.storage.LevelResource;
+import net.minecraft.world.scores.DisplaySlot;
+import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.PlayerTeam;
+import net.minecraft.world.scores.ScoreHolder;
+import net.minecraft.world.scores.criteria.ObjectiveCriteria;
 import net.minecraft.world.scores.Team;
 
 import java.util.ArrayList;
@@ -63,6 +67,7 @@ public class Match {
 	private final Map<UUID, GameType> previousGameModes = new HashMap<>();
 	private final Map<UUID, CsClass> classes = new HashMap<>();
 	private final List<BotSlot> bots = new ArrayList<>();
+	private Objective sidebar;
 
 	private static final String[] BOT_NAMES = {
 			"Alex", "Bruno", "Chris", "Dario", "Emil", "Finn", "Gustav", "Hugo", "Ivan", "Jonas",
@@ -162,6 +167,7 @@ public class Match {
 		showClassMenu(player);
 		if (isActive()) {
 			enterMatch(player);
+			updateSidebar(player.getUUID());
 		}
 	}
 
@@ -215,6 +221,7 @@ public class Match {
 			enterMatch(player);
 		}
 		createBots();
+		setupSidebar();
 		broadcast(Component.literal("Team Deathmatch startet! Laufzeit: " + config.durationMinutes + " Minuten")
 				.withStyle(ChatFormatting.GREEN));
 		return null;
@@ -227,6 +234,7 @@ public class Match {
 		}
 		broadcast(Component.literal("Das Spiel wurde abgebrochen.").withStyle(ChatFormatting.RED));
 		finish();
+		removeSidebar();
 		setState(State.LOBBY);
 	}
 
@@ -237,6 +245,7 @@ public class Match {
 			case RUNNING -> tickRunning();
 			case ENDED -> {
 				if (stateTicks >= END_SCREEN_SECONDS * 20) {
+					removeSidebar();
 					setState(State.LOBBY);
 				}
 			}
@@ -348,6 +357,7 @@ public class Match {
 		CsTeam killerTeam = killer == null ? null : teamOf(killer);
 		if (killer != null && killerTeam != null && killerTeam != victimTeam) {
 			kills.merge(killer.getUUID(), 1, Integer::sum);
+			updateSidebar(killer.getUUID());
 			teamKills.merge(killerTeam, 1, Integer::sum);
 			broadcast(Component.literal(killer.getName().getString()).withStyle(killerTeam.color)
 					.append(Component.literal(" [" + (weapon != null ? weapon : meleeName(killer)) + "] ").withStyle(ChatFormatting.GRAY))
@@ -357,9 +367,23 @@ public class Match {
 	}
 
 	/** Vor dem Tod: Inventar leeren, damit keine Waffen auf den Boden fallen. */
-	public boolean allowDeath(LivingEntity entity) {
+	public boolean allowDeath(LivingEntity entity, DamageSource source) {
 		if (isActive() && entity instanceof ServerPlayer player && teamOf(player) != null) {
-			player.getInventory().clearContent();
+			// Sofort-Respawn wie im Team Deathmatch: kein Todesbildschirm, keine Drops.
+			onDeath(player, source);
+			Entity killer = source.getEntity();
+			showTitle(player, Component.literal("Ausgeschaltet").withStyle(ChatFormatting.RED),
+					killer != null && killer != player
+							? Component.literal("von " + killer.getName().getString())
+							: Component.empty(), 0, 30, 10);
+			player.removeAllEffects();
+			player.clearFire();
+			player.setDeltaMovement(Vec3.ZERO);
+			player.resetFallDistance();
+			preparePlayer(player);
+			teleportToSpawn(player);
+			showClassMenu(player);
+			return false;
 		}
 		if (entity instanceof CsBot bot) {
 			for (EquipmentSlot slot : EquipmentSlot.values()) {
@@ -445,6 +469,37 @@ public class Match {
 		}
 	}
 
+	// ---------------------------------------------------------------- Seitenleiste
+
+	private void setupSidebar() {
+		removeSidebar();
+		Objective old = scoreboard().getObjective("cs_kills");
+		if (old != null) {
+			scoreboard().removeObjective(old);
+		}
+		sidebar = scoreboard().addObjective("cs_kills", ObjectiveCriteria.DUMMY,
+				Component.literal("Kills").withStyle(ChatFormatting.GOLD), ObjectiveCriteria.RenderType.INTEGER, false, null);
+		scoreboard().setDisplayObjective(DisplaySlot.SIDEBAR, sidebar);
+		for (UUID id : members.keySet()) {
+			updateSidebar(id);
+		}
+	}
+
+	private void updateSidebar(UUID id) {
+		String name = names.get(id);
+		if (sidebar == null || name == null) {
+			return;
+		}
+		scoreboard().getOrCreatePlayerScore(ScoreHolder.forNameOnly(name), sidebar).set(kills.getOrDefault(id, 0));
+	}
+
+	private void removeSidebar() {
+		if (sidebar != null) {
+			scoreboard().removeObjective(sidebar);
+			sidebar = null;
+		}
+	}
+
 	// ---------------------------------------------------------------- Bots
 
 	private void createBots() {
@@ -485,6 +540,7 @@ public class Match {
 		PlayerTeam scoreboardTeam = scoreboard().getPlayerTeam(slot.team.scoreboardName());
 		if (scoreboardTeam != null) {
 			scoreboard().addPlayerToTeam(bot.getScoreboardName(), scoreboardTeam);
+			scoreboard().addPlayerToTeam(slot.name, scoreboardTeam);
 		}
 		slot.entity = bot;
 	}
@@ -496,6 +552,7 @@ public class Match {
 				WeaponHandler.forget(slot.entity);
 				slot.entity.discard();
 			}
+			scoreboard().removePlayerFromTeam(slot.name);
 			members.remove(slot.id);
 		}
 		bots.clear();

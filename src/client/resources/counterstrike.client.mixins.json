@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"package": "com.jan1a234.counterstrike.client.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"CameraMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}
