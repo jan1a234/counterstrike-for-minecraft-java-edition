@@ -27,6 +27,7 @@ import java.util.Set;
 public final class HarborClientGameTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext context) {
+        WeaponInputClientTest.verify(context);
         TestWorldSave save;
         PlayerState beforeRestart;
         try (TestSingleplayerContext world = context.worldBuilder().create()) {
@@ -54,14 +55,14 @@ public final class HarborClientGameTest implements FabricClientGameTest {
                                         lobbyState.verify(
                                                 player,
                                                 "lobby membership is not a survival-state"
-                                                    + " rollback");
+                                                        + " rollback");
                                         check(
                                                 server.getScoreboard()
                                                                 .getPlayersTeam(
                                                                         player.getScoreboardName())
                                                         == survivalTeam,
                                                 "Lobby join/leave must preserve the original"
-                                                    + " scoreboard team");
+                                                        + " scoreboard team");
                                         PlayerState state = fixture(player);
                                         Match.get().config().ctBots = 3;
                                         Match.get().config().tBots = 3;
@@ -111,7 +112,7 @@ public final class HarborClientGameTest implements FabricClientGameTest {
                                                 player.damageSources().arrow(null, outsider),
                                                 4),
                                         "Outsider-owned projectiles must not damage an active"
-                                            + " participant");
+                                                + " participant");
                             });
             world.getConnection().waitForChunksRender();
             context.waitTicks(10);
@@ -169,6 +170,23 @@ public final class HarborClientGameTest implements FabricClientGameTest {
                     });
             context.waitTicks(140);
             context.takeScreenshot("harbor-real-render-overview");
+            world.getServer()
+                    .runOnServer(
+                            server -> {
+                                var player = server.getPlayerList().getPlayers().getFirst();
+                                player.teleportTo(
+                                        ArenaManager.level(server),
+                                        -11.5,
+                                        65,
+                                        5.5,
+                                        Set.<Relative>of(),
+                                        -90,
+                                        5,
+                                        true);
+                            });
+            world.getConnection().waitForChunksRender();
+            context.waitTicks(20);
+            context.takeScreenshot("harbor-warehouse-dogleg");
             context.runOnClient(
                     client -> {
                         if (client.gui.hud.isHidden()) client.gui.hud.toggle();
@@ -191,7 +209,7 @@ public final class HarborClientGameTest implements FabricClientGameTest {
                                                         player.damageSources().generic(),
                                                         1),
                                         "Former participants must not remain invulnerable outside"
-                                            + " an active round");
+                                                + " an active round");
                                 // Keep no stale membership while setting up the independent restart
                                 // case.
                                 Match.get().leave(player);
@@ -237,7 +255,7 @@ public final class HarborClientGameTest implements FabricClientGameTest {
         verifyDisconnectWithoutServerRestart(context);
         System.out.println(
                 "COUNTERSTRIKE_CLIENT_EVIDENCE snapshot restored after leave, stop, disconnect and"
-                    + " restart");
+                        + " restart");
     }
 
     private static void verifyDisconnectWithoutServerRestart(ClientGameTestContext context) {

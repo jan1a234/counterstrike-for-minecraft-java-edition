@@ -98,7 +98,9 @@ public final class WeaponHandler {
             return id == null ? InteractionResult.PASS : InteractionResult.FAIL;
         }
         if (level.isClientSide() || !(player instanceof ServerPlayer serverPlayer)) {
-            return InteractionResult.CONSUME;
+            // Fabric UseItemCallback sends its C2S packet only for SUCCESS, not CONSUME.
+            // CONSUME looked handled locally but silently dropped every shot into open air.
+            return InteractionResult.SUCCESS;
         }
         if (Match.get() == null
                 || !Match.get().isRunning()

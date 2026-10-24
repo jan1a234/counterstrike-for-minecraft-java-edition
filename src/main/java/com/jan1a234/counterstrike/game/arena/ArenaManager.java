@@ -30,9 +30,11 @@ public final class ArenaManager {
     public static final String DIMENSION_STRING = DIMENSION.toString();
 
     private static final HarborLayout LAYOUT = new HarborLayout();
-    // One hidden completion marker per chunk, saved in the SAME chunk as its geometry.
-    // Interrupted first builds resume only incomplete chunks; ready chunks are never erased.
+    private static final HarborLayout LEGACY_V1 = HarborLayout.legacyV1();
+    // Per-chunk markers commit only after geometry, in the same saved chunk. Keep a v1 marker
+    // intact during its delta upgrade so an interrupted upgrade can safely resume.
     private static final BlockState COMPLETE_V1 = Blocks.EMERALD_BLOCK.defaultBlockState();
+    private static final BlockState COMPLETE_V2 = Blocks.LAPIS_BLOCK.defaultBlockState();
     private static final BlockState[] PALETTE = palette();
 
     private ArenaManager() {}
@@ -57,9 +59,14 @@ public final class ArenaManager {
 
     /**
      * Call on the server thread before teleporting participants. Generates at most 24 chunks and
-     * only the owned x/z rectangle, y=62..80; never clears or modifies another dimension.
-     * Subsequent calls load the completion markers and verify all fixed spawn volumes. A damaged
-     * completed spawn is rejected instead of silently teleporting into a wall.
+     * only the owned x/z rectangle, y=62..80; never clears or modifies another dimension. Completed
+     * v1 chunks receive only v1-to-v2 geometry deltas whose current block still equals the old
+     * generated block. Other edits (including removed blocks) are preserved. Placed blocks
+     * identical to the old generated state cannot be distinguished; back up customized Harbor
+     * worlds before upgrading. This never targets custom-map dimensions or the overworld. Unmarked
+     * chunks are initial construction and replace the owned volume as before. Completed v2 chunks
+     * are untouched. Every call verifies fixed spawn volumes; damage is rejected rather than
+     * silently repaired or teleporting participants into a wall.
      */
     public static ServerLevel ensureReady(MinecraftServer server) {
         if (!server.isSameThread())
@@ -112,7 +119,9 @@ public final class ArenaManager {
         int z1 = Math.max(HarborLayout.MIN_Z, cz * 16),
                 z2 = Math.min(HarborLayout.MAX_Z, cz * 16 + 15);
         BlockPos marker = new BlockPos(x1, HarborLayout.BASE_Y, z1);
-        if (level.getBlockState(marker).equals(COMPLETE_V1)) return;
+        BlockState completion = level.getBlockState(marker);
+        if (completion.equals(COMPLETE_V2)) return;
+        boolean upgrading = completion.equals(COMPLETE_V1);
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         // No neighbor churn, drops, block entities or scheduled fluid updates. Lighting still
         // updates.
@@ -121,17 +130,23 @@ public final class ArenaManager {
             for (int x = x1; x <= x2; x++) {
                 for (int z = z1; z <= z2; z++) {
                     pos.set(x, y, z);
+                    // Never erase the old commit marker before the upgrade is complete.
+                    if (pos.equals(marker)) continue;
                     BlockState desired = PALETTE[LAYOUT.blockAt(x, y, z).ordinal()];
-                    if (!level.getBlockState(pos).equals(desired)
-                            && !level.setBlock(pos, desired, flags)) {
+                    BlockState actual = level.getBlockState(pos);
+                    if (upgrading) {
+                        BlockState old = PALETTE[LEGACY_V1.blockAt(x, y, z).ordinal()];
+                        if (old.equals(desired) || !actual.equals(old)) continue;
+                    }
+                    if (!actual.equals(desired) && !level.setBlock(pos, desired, flags)) {
                         throw new IllegalStateException(
                                 "Harbor-Block konnte nicht gebaut werden: " + pos);
                     }
                 }
             }
         }
-        if (!level.setBlock(marker, COMPLETE_V1, flags)
-                || !level.getBlockState(marker).equals(COMPLETE_V1)) {
+        if (!level.setBlock(marker, COMPLETE_V2, flags)
+                || !level.getBlockState(marker).equals(COMPLETE_V2)) {
             throw new IllegalStateException(
                     "Harbor-Bau konnte nicht abgeschlossen werden: " + marker);
         }
