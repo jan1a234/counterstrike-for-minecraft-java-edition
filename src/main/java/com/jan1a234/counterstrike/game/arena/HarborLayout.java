@@ -53,6 +53,15 @@ public final class HarborLayout {
     public record Point(int x, int z) {}
 
     public HarborLayout() {
+        this(true);
+    }
+
+    /** Frozen generated v1 plan, used only for conservative per-block upgrades. */
+    public static HarborLayout legacyV1() {
+        return new HarborLayout(false);
+    }
+
+    private HarborLayout(boolean winding) {
         Arrays.fill(blocks, Material.AIR);
         ground();
         warehouse();
@@ -60,6 +69,7 @@ public final class HarborLayout {
         quay();
         compound(false);
         compound(true);
+        if (winding) windingRoutes();
         boundaries();
     }
 
@@ -134,6 +144,37 @@ public final class HarborLayout {
         crate(0, 4, 3, 2);
         fill(-13, FLOOR_Y, -3, -13, FLOOR_Y, 3, Material.YELLOW);
         fill(13, FLOOR_Y, -3, 13, FLOOR_Y, 3, Material.YELLOW);
+    }
+
+    /**
+     * Three broad doglegs rather than a maze. Alternating walls meet route edges so neither the
+     * waterfront nor the north perimeter remains a full-width firing lane. All gaps are at least
+     * three blocks wide; the central cross-route doors and both compound exits stay unchanged. Keep
+     * the original builders above frozen: migration compares against that exact v1 plan.
+     */
+    private void windingRoutes() {
+        // Yard: pass south of the first screen, then north of the second.
+        fill(-10, FEET_Y, -29, -9, 68, -17, Material.TEAL);
+        fill(9, FEET_Y, -21, 10, 68, -10, Material.RED);
+        // Clear a broad turning aisle between the existing red container and the second screen.
+        fill(4, FEET_Y, -19, 8, 68, -15, Material.AIR);
+
+        // Warehouse loading bays are deliberately offset; interior partitions alternate openings.
+        fill(-14, FEET_Y, -3, -14, 69, 3, Material.BRICK);
+        fill(14, FEET_Y, -3, 14, 69, 3, Material.BRICK);
+        fill(-14, FEET_Y, -6, -14, 69, -2, Material.AIR);
+        fill(14, FEET_Y, 2, 14, 69, 6, Material.AIR);
+        fill(-6, FEET_Y, -8, -6, 70, 2, Material.BRICK);
+        fill(6, FEET_Y, -2, 6, 70, 8, Material.BRICK);
+        // Move work stacks away from the inside of the new loading bays.
+        fill(-10, FEET_Y, -6, -7, 66, -4, Material.AIR);
+        fill(7, FEET_Y, 4, 10, 66, 6, Material.AIR);
+        fill(-13, FLOOR_Y, -6, -13, FLOOR_Y, -2, Material.YELLOW);
+        fill(13, FLOOR_Y, 2, 13, FLOOR_Y, 6, Material.YELLOW);
+
+        // Quay: first turn waterside, then back inland. The seawall still seals off the water.
+        fill(-8, FEET_Y, 10, -7, 68, 20, Material.STEEL);
+        fill(7, FEET_Y, 16, 8, 68, 26, Material.STEEL);
     }
 
     private void containerYard() {

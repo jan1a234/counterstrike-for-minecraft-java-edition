@@ -51,11 +51,16 @@ def run_stage(gradle: Path, task: str, environment: dict[str, str], report_dir: 
     stage: dict[str, object] = {"task": task, "passed": returncode == 0,
                                 "exit_code": returncode, "log": str(log)}
     markers = (["COUNTERSTRIKE_RUNTIME_EVIDENCE real generated block checks=",
+                "COUNTERSTRIKE_RUNTIME_EVIDENCE v1->v2 upgrade exact blocks=",
                 "COUNTERSTRIKE_RUNTIME_EVIDENCE combat tick=",
                 "COUNTERSTRIKE_RUNTIME_EVIDENCE custom combat tick=",
                 "COUNTERSTRIKE_INVENTORY_EVIDENCE",
                 "COUNTERSTRIKE_BOT_SAFETY shouldBeSaved=false"] if task == "runGameTest" else
-               ["COUNTERSTRIKE_CLIENT_EVIDENCE snapshot restored after leave, stop, disconnect and restart"])
+               ["COUNTERSTRIKE_CLIENT_EVIDENCE snapshot restored after leave, stop, disconnect and restart",
+                "COUNTERSTRIKE_INPUT_SINGLE_PASS", "COUNTERSTRIKE_INPUT_HELD_PASS",
+                "COUNTERSTRIKE_INPUT_RELOAD_PASS", "COUNTERSTRIKE_INPUT_DAMAGE_PASS",
+                "COUNTERSTRIKE_INPUT_REBIND_PASS", "COUNTERSTRIKE_INPUT_EDGES_PASS",
+                "COUNTERSTRIKE_INPUT_CONTROLS_PASS", "COUNTERSTRIKE_INPUT_MATRIX_PASS"])
     stage["evidence"] = [line for line in text.splitlines() if "COUNTERSTRIKE_" in line]
     missing = [marker for marker in markers if marker not in text]
     if missing:
@@ -64,7 +69,7 @@ def run_stage(gradle: Path, task: str, environment: dict[str, str], report_dir: 
         screenshots = []
         missing_screenshots = []
         for name in ["harbor-participant-running", "harbor-real-render-overview",
-                     "harbor-restored-after-restart"]:
+                     "harbor-restored-after-restart", "harbor-warehouse-dogleg"]:
             files = list((ROOT / "build/run/clientGameTest").rglob(f"*{name}*.png"))
             valid = [p for p in files if p.stat().st_mtime >= started - 2
                      and p.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"]

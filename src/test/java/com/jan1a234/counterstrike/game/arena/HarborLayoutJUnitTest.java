@@ -7,6 +7,11 @@ class HarborLayoutJUnitTest {
     private final HarborLayout map = new HarborLayout();
 
     @Test
+    void windingRoutesStayConnectedAndLimitSightlines() {
+        HarborWindingTest.verify(map);
+    }
+
+    @Test
     void fixedSpawnsAreSafeAndSeparated() {
         HarborLayoutTest.fixedSpawnsAreSafeAndSeparated(map);
     }

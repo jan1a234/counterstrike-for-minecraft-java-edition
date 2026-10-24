@@ -28,6 +28,7 @@ public final class HarborRuntimeGameTest {
     public void harborGenerationAndLiveMatch(GameTestHelper test) {
         var server = test.getLevel().getServer();
         new InventoryIsolationGameTest().verifyIsolation(test);
+        HarborUpgradeGameTest.verifyUpgrade(test);
         Match match = Match.get();
         test.assertTrue(match != null, "Real SERVER_STARTED must initialize Match");
         test.assertTrue(match.state() == Match.State.LOBBY, "Fresh test world starts in lobby");
@@ -124,7 +125,7 @@ public final class HarborRuntimeGameTest {
                                 test.assertTrue(
                                         bot.tickCount > 0,
                                         "Bots must actually tick in the player-free harbor"
-                                            + " dimension; entity ticks="
+                                                + " dimension; entity ticks="
                                                 + bot.tickCount);
                         })
                 .thenWaitUntil(
@@ -132,7 +133,7 @@ public final class HarborRuntimeGameTest {
                                 test.assertTrue(
                                         !"CT 0 : 0 T".equals(match.scoreLine().getString()),
                                         "Bots must navigate from protected spawns and score a real"
-                                            + " combat kill"))
+                                                + " combat kill"))
                 .thenExecute(
                         () -> {
                             test.assertTrue(
@@ -186,7 +187,7 @@ public final class HarborRuntimeGameTest {
                                 test.assertTrue(
                                         !"CT 0 : 0 T".equals(match.scoreLine().getString()),
                                         "Player-free custom match must tick bots across intervening"
-                                            + " non-spawn chunks"))
+                                                + " non-spawn chunks"))
                 .thenExecute(
                         () -> {
                             System.out.println(

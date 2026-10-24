@@ -6,17 +6,19 @@ Team-Deathmatch für **Minecraft Java 26.2**, mit eigener Hafenkarte, festen Tea
 
 Fabric Loader **0.19.5+**, Fabric API **0.161.0+26.2** und die Mod-Jar gehören auf Server und Client. Im Einzelspieler genügt die Installation im Client. Java 25 wird benötigt.
 
-1. `counterstrike-0.2.0.jar` in den `mods`-Ordner legen.
+1. `counterstrike-0.2.1.jar` in den `mods`-Ordner legen.
 2. Welt öffnen und **`/cs play`** eingeben.
 3. Nach dem Countdown spielen; **`/cs leave`** bringt dich zurück.
 
-Keine Map-Datei, kein zusätzlicher Resourcepack-Download und kein manuelles Setzen von Spawns erforderlich. Beim ersten Start wird **Harbor 17** in einer eigenen Dimension gebaut; deine Oberwelt wird nicht überbaut. Die Karte hat Containerhof, Lagerhalle und Pier, gedeckte Team-Bereiche und **16 feste Spawnplätze pro Team**. Der Einstieg ergänzt Botgegner.
+Keine Map-Datei, kein zusätzlicher Resourcepack-Download und kein manuelles Setzen von Spawns erforderlich. Beim ersten Start wird **Harbor 17** in einer eigenen Dimension gebaut; deine Oberwelt wird nicht überbaut. Die Karte hat Containerhof, Lagerhalle und Pier, gedeckte Team-Bereiche und **16 feste Spawnplätze pro Team**. Der Einstieg ergänzt Botgegner. Containerhof und Pier haben versetzte Deckungen; die Lagerhalle hat versetzte Tore und Innenwände. Drei durchgängige Wege mit Querverbindungen bleiben erhalten.
+
+**Update von 0.2.0:** Alte Jar ersetzen, nicht zusätzlich installieren. Bereits erzeugte Harbor-Arenen erhalten beim nächsten Start die neue Geometrie. Nur die mod-eigene Harbor-Fläche wird aktualisiert; erkennbare eigene Blockänderungen bleiben erhalten. Selbst gesetzte Blöcke, die exakt dem alten generierten Zustand gleichen, sind nicht unterscheidbar: vorher Weltbackup anlegen. Custom-Karten und Oberwelt werden nicht umgebaut. Bei einer alten Custom-Konfiguration als OP einmal `/cs map harbor` wählen.
 
 ## Steuerung
 
 Die Waffen reagieren serverseitig; Nachladen und Zielen sind getrennte Aktionen.
 
-- **Rechtsklick:** schießen; gedrückt halten für wiederholtes Feuern.
+- **Linksklick oder Rechtsklick:** schießen; gedrückt halten für wiederholtes Feuern. Beide nutzen dieselbe serverseitige Feuerrate. Die zugehörigen Minecraft-Tastenbelegungen werden respektiert.
 - **R** oder **`/cs reload`:** nachladen; leere Magazine laden beim Schussversuch automatisch nach.
 - **Schleichen:** genauer zielen; beim Sniper zusätzlich Zielfernrohr.
 - **Granate + Rechtsklick:** werfen; Explosion ohne Blockzerstörung.
@@ -75,4 +77,4 @@ python ci/validate_weapon_assets.py
 ./gradlew runClientGameTest
 ```
 
-Clienttests brauchen eine funktionierende OpenGL-Anzeige. Server- und Clienttests nicht in getrennten parallelen Gradle-Prozessen starten. Die Prüfungen umfassen Kartengeometrie, echte Botkämpfe, Countdown/Stop, Spielerwiederherstellung sowie echte Client-Screenshots. Einzelheiten stehen in `src/gametest/README.md`.
+Clienttests brauchen eine funktionierende OpenGL-Anzeige. Server- und Clienttests nicht in getrennten parallelen Gradle-Prozessen starten. Die Prüfungen umfassen Kartengeometrie und Versionsupgrade, echte Botkämpfe, Countdown/Stop, Spielerwiederherstellung sowie echte Client-Screenshots. Zusätzlich betätigt der Clienttest echte Maus-/Tasteneingaben und prüft serverseitig Munition, Schaden, Dauerfeuer, Nachladen und normale Minecraft-Interaktionen. Einzelheiten stehen in `src/gametest/README.md`.

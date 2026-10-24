@@ -3,7 +3,9 @@
 	"package": "com.jan1a234.counterstrike.client.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
-		"CameraMixin"
+		"CameraMixin",
+		"MultiPlayerGameModeInvoker",
+		"WeaponInputMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
