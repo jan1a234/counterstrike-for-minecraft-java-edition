@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "counterstrike-gametest",
+  "version": "1.0.0",
+  "name": "Counter-Strike real runtime integration tests",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": ["com.jan1a234.counterstrike.gametest.HarborRuntimeGameTest", "com.jan1a234.counterstrike.gametest.BotSafetyGameTest"],
+    "fabric-client-gametest": ["com.jan1a234.counterstrike.gametest.HarborClientGameTest"]
+  },
+  "depends": {
+    "counterstrike": "*",
+    "fabric-gametest-api-v1": "*",
+    "minecraft": "~26.2",
+    "java": ">=25"
+  }
+}

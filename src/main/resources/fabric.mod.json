@@ -24,6 +24,7 @@
 		"fabric-api": "*"
 	},
 	"mixins": [
+		"counterstrike.mixins.json",
 		{
 			"config": "counterstrike.client.mixins.json",
 			"environment": "client"

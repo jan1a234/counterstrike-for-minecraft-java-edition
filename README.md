@@ -1,65 +1,78 @@
-# Counter-Strike für Minecraft
+# Counter-Strike für Minecraft — Harbor 17
 
-Fabric-Mod für Minecraft Java 26.2: Team Deathmatch zwischen Counter-Terroristen (CT) und Terroristen (T),
-mit vier Klassen, Schusswaffen und Bots. Das Team mit den meisten Kills bei Ablauf der Zeit gewinnt.
+Team-Deathmatch für **Minecraft Java 26.2**, mit eigener Hafenkarte, festen Team-Spawns, vier Klassen, fünf modellierten Schusswaffen und Bots. Das Team mit den meisten Kills bei Ablauf der Zeit gewinnt.
 
-## Installation
+## Installieren und spielen
 
-1. Fabric Loader 0.19.5 oder neuer und Fabric API für 26.2 installieren, auf dem Server und bei jedem Spieler.
-2. Die Mod-Jar in den `mods`-Ordner legen (Server und Client). Die Jar gibt es im Artefakt
-   `counterstrike-mod` des letzten GitHub-Actions-Builds auf `main` (Tab „Actions“).
+Fabric Loader **0.19.5+**, Fabric API **0.161.0+26.2** und die Mod-Jar gehören auf Server und Client. Im Einzelspieler genügt die Installation im Client. Java 25 wird benötigt.
 
-## Map einrichten (einmalig, als OP)
+1. `counterstrike-0.2.0.jar` in den `mods`-Ordner legen.
+2. Welt öffnen und **`/cs play`** eingeben.
+3. Nach dem Countdown spielen; **`/cs leave`** bringt dich zurück.
 
-```
-/cs spawn add ct      Spawnpunkt für CT an deiner Position (mehrere möglich)
-/cs spawn add t       Spawnpunkt für T
-/cs spawn list        Spawnpunkte anzeigen
-/cs spawn clear ct|t  Spawnpunkte eines Teams löschen
-```
-
-Die Einstellungen landen in `counterstrike.json` im Weltordner und gehören damit zur Map.
-
-## Spiel starten
-
-```
-/cs time 15|30|120             Laufzeit in Minuten
-/cs bots ct|t <anzahl>         Bots pro Team (0 bis 16)
-/cs botlevel leicht|normal|schwer
-/cs join ct|t|auto             Team wählen (jeder Spieler)
-/cs class sturm|mg|sniper|pionier   Klasse wählen (oder im Chat anklicken)
-/cs start                      Spiel starten (10 Sekunden Countdown)
-/cs stop                       Spiel abbrechen
-/cs status                     Spielstand und Einstellungen
-```
-
-Während des Spiels sind alle im Abenteuermodus, nach dem Spiel bekommt jeder seinen alten Spielmodus zurück.
-Oben zeigt eine Leiste den Stand und die Restzeit, rechts stehen die Kills jedes Spielers.
-Wer ausgeschaltet wird, spawnt sofort an einem Team-Spawn neu und hat 3 Sekunden Spawnschutz.
-
-## Klassen
-
-| Klasse | Hauptwaffe | Extras |
-|---|---|---|
-| Sturmtruppler | Sturmgewehr, 30 Schuss | 1 Granate |
-| MG-Schütze | Maschinengewehr, 100 Schuss, Salven | Eisenbrust, +3 Herzen, 15 % langsamer |
-| Sniper | Scharfschützengewehr, 5 Schuss | Schleichen = Zielfernrohr (4-fach Zoom, volle Präzision) |
-| Pionier | Schrotflinte, 8 Kugeln pro Schuss | 3 Granaten, 10 % schneller |
-
-Alle haben zusätzlich Pistole und Messer.
+Keine Map-Datei, kein zusätzlicher Resourcepack-Download und kein manuelles Setzen von Spawns erforderlich. Beim ersten Start wird **Harbor 17** in einer eigenen Dimension gebaut; deine Oberwelt wird nicht überbaut. Die Karte hat Containerhof, Lagerhalle und Pier, gedeckte Team-Bereiche und **16 feste Spawnplätze pro Team**. Der Einstieg ergänzt Botgegner.
 
 ## Steuerung
 
-- Rechtsklick: schießen (gedrückt halten für Dauerfeuer)
-- Schleichen + Rechtsklick: nachladen (der Sniper lädt automatisch, wenn das Magazin leer ist)
-- Schleichen: genauer zielen
-- Granate: Rechtsklick wirft, sie explodiert nach 2,5 Sekunden ohne Blockschaden
-- Kopftreffer machen mehr Schaden, Munition steht über der Schnellleiste
+Die Waffen reagieren serverseitig; Nachladen und Zielen sind getrennte Aktionen.
 
-## Bauen
+- **Rechtsklick:** schießen; gedrückt halten für wiederholtes Feuern.
+- **R** oder **`/cs reload`:** nachladen; leere Magazine laden beim Schussversuch automatisch nach.
+- **Schleichen:** genauer zielen; beim Sniper zusätzlich Zielfernrohr.
+- **Granate + Rechtsklick:** werfen; Explosion ohne Blockzerstörung.
+- **`/cs class sturm|mg|sniper|pionier`:** Klasse wählen.
+- **`/cs status`:** Spielstand und Einstellungen anzeigen.
 
+Bewegung und Dauerfeuer erhöhen die Streuung. Ruhe und Zielen helfen; Schaden nimmt je nach Waffe mit der Entfernung ab. Spawnschutz endet beim eigenen Angriff. Bots benötigen Sichtkontakt und reagieren je nach Schwierigkeit verzögert.
+
+## Klassen und Spielregeln
+
+Alle Klassen erhalten zusätzlich Pistole und Messer; Teamfarben, Munitionsanzeige, Restzeit und Kill-Liste bleiben im Spiel sichtbar.
+
+| Klasse | Hauptwaffe | Besonderheit |
+|---|---|---|
+| Sturm | Sturmgewehr | Allrounder, eine Granate |
+| MG | Maschinengewehr | Schwerere Rüstung, mehr Leben, langsamer |
+| Sniper | Scharfschützengewehr | Präzises Zielen und Zielfernrohr |
+| Pionier | Schrotflinte | Nahkampf, drei Granaten, schneller |
+
+Spieler werden nach einem Abschuss neu ausgerüstet und an einen festen Team-Spawn gesetzt. Bots kämpfen auch ohne anwesende Zuschauer weiter. Dies ist **Team-Deathmatch**, nicht der Bombenmodus von Counter-Strike. Bots nutzen weiterhin Minecraft-Zombiefiguren mit Teamausrüstung; Waffen besitzen eigene Modelle. Keine Nachladeanimationen oder echte ballistische Simulation.
+
+## Einstellungen und eigene Karten
+
+Administratoren können Spieldauer, Bots und Karte vor einem Match festlegen. Die Konfiguration liegt als `counterstrike.json` im Weltordner.
+
+```text
+/cs time 15|30|120
+/cs bots ct|t <0..16>
+/cs botlevel leicht|normal|schwer
+/cs start
+/cs stop
+/cs map harbor|custom
+/cs spawn add ct|t
+/cs spawn list
+/cs spawn clear ct|t
 ```
+
+`harbor` verwendet die mitgelieferten Spawns. Im Custom-Modus wird das Rechteck zwischen den Spawns einschließlich eines Chunk-Rands aktiv gehalten; zum Schutz vor übergroßen Ladebereichen gilt insgesamt ein Limit von 256 Chunks. Für `custom` zuerst eigene Spawnpunkte für beide Teams setzen. Bestehende Konfigurationen mit eigenen Spawnpunkten bleiben im Custom-Modus erhalten. Spieler können mit `/cs join ct|t|auto` ein Team wählen.
+
+## Schutz deiner Spielerdaten
+
+Vor dem Betreten wird dein Zustand dauerhaft im Weltordner gesichert: Inventar einschließlich Item-Komponenten, ursprüngliche Position und Spielmodus sowie Gesundheit, Nahrung, Effekte, Erfahrung und Team. Verlassen, Abmelden und regulärer Serverneustart stellen ihn wieder her. Ein bloßer Lobbybeitritt setzt dein Survival-Inventar nicht zurück.
+
+Während eines Matches sind externe Kisten-/Ender-/Pferdeinventare, Ausrüstungstransfers sowie Item- und XP-Aufnahme und das Wegwerfen von Ausrüstung serverseitig gesperrt. Normales Umsortieren im eigenen Inventar bleibt möglich. Bots funktionieren auch auf Friedlich und werden nicht als dauerhafte Zombies gespeichert. Bereits von älteren Versionen gespeicherte, unmarkierte Zombies werden nicht automatisch entfernt.
+
+Fehlerhafte oder nicht wiederherstellbare Sicherungen werden nicht stillschweigend gelöscht; erneuter Einstieg wird blockiert. **`counterstrike-player-backups` nicht manuell löschen**, solange eine Wiederherstellung offen ist. Vor Mod-Updates weiterhin ein normales Weltbackup anlegen. Ein harter Stromausfall und die Kombination mit beliebigen anderen Mods sind nicht vollständig abgedeckt.
+
+## Bauen und prüfen
+
+Die Tests laufen in wegwerfbaren Welten unter `build/run`, nicht in deinen Spielständen.
+
+```bash
 ./gradlew build
+python ci/validate_weapon_assets.py
+./gradlew runGameTest
+./gradlew runClientGameTest
 ```
 
-Benötigt JDK 25.
+Clienttests brauchen eine funktionierende OpenGL-Anzeige. Server- und Clienttests nicht in getrennten parallelen Gradle-Prozessen starten. Die Prüfungen umfassen Kartengeometrie, echte Botkämpfe, Countdown/Stop, Spielerwiederherstellung sowie echte Client-Screenshots. Einzelheiten stehen in `src/gametest/README.md`.

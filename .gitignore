@@ -6,3 +6,5 @@ run/
 *.iml
 .vscode/
 bin/
+logs/
+*.log
